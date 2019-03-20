@@ -61,6 +61,7 @@ function getUnexpectedStateShapeWarningMessage(
 
   unexpectedKeys.forEach(key => {
     // 此处要注意下，这个地方是内部函数的一个副作用，在此处赋值，会对函数外的引用变量发生改变
+    // 对，又是闭包
     unexpectedKeyCache[key] = true;
   });
 

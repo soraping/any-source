@@ -63,13 +63,15 @@ export default function createStore(reducer, preloadedState, enhancer) {
   let currentState = preloadedState;
   // 保存了当前注册的函数列表
   let currentListeners = [];
-  // 保存下一个监听函数列表
+  // 获取当前监听器的一个副本(相同的引用)
   let nextListeners = currentListeners;
   // 是否正在dispatch一个action
   let isDispatching = false;
 
   /**
-   *
+   * 如果nextListeners和currentListeners具有相同的引用，
+   * 则获取一份当前事件监听器集合的一个副本保存到nextListeners中
+   * [].slice(),克隆数组的方法，这两个数组就是不会同一个引用了
    */
   function ensureCanMutateNextListeners() {
     if (nextListeners === currentListeners) {
@@ -94,13 +96,13 @@ export default function createStore(reducer, preloadedState, enhancer) {
 
   /**
    *
-   * @param {*} listener
+   * @param {*} listener 监听者
    */
   function subscribe(listener) {
     if (typeof listener !== "function") {
       throw new Error("Expected the listener to be a function.");
     }
-
+    // 如果redux正在触发action，则会抛出异常
     if (isDispatching) {
       throw new Error(
         "You may not call store.subscribe() while the reducer is executing. " +
@@ -109,12 +111,18 @@ export default function createStore(reducer, preloadedState, enhancer) {
           "See https://redux.js.org/api-reference/store#subscribe(listener) for more details."
       );
     }
-
+    // 当调用退订方式时，会调用这个字段判别是否在监听者列表中
     let isSubscribed = true;
-
+    // 调用这个方法把当前事件监听器列表克隆到nextListeners列表
     ensureCanMutateNextListeners();
+    // 压栈传入的监听者
     nextListeners.push(listener);
 
+    /**
+     * 取消监听方法
+     * let listener = store.subscribe(() => {})
+     * listener.unsubscribe()
+     */
     return function unsubscribe() {
       if (!isSubscribed) {
         return;
@@ -126,11 +134,14 @@ export default function createStore(reducer, preloadedState, enhancer) {
             "See https://redux.js.org/api-reference/store#subscribe(listener) for more details."
         );
       }
-
+      // 字段锁
       isSubscribed = false;
 
+      // 此处调用这个方法的意义就是确保 当前监听列表以及副本的数据一致性
       ensureCanMutateNextListeners();
+      // 在 nextListeners 列表中排除这个监听列表
       const index = nextListeners.indexOf(listener);
+      // 从事件监听器集合中删除这个事件监听器
       nextListeners.splice(index, 1);
     };
   }
@@ -161,6 +172,7 @@ export default function createStore(reducer, preloadedState, enhancer) {
 
     // isDispatching 等待currentReducer的返回值之后，设置状态为false
     try {
+      // 巧用闭包
       isDispatching = true;
       // reducer函数经过action后返回新的state树
       // 注意，这里的 state 是整个应用的 state 树
@@ -170,12 +182,17 @@ export default function createStore(reducer, preloadedState, enhancer) {
       isDispatching = false;
     }
 
+    // 定义监听者列表
+    // nextListeners: 保存这次dispatch后，需要触发的所有事件监听器的列表
+    // currentListeners: 保存一份nextListeners列表的副本
     const listeners = (currentListeners = nextListeners);
     for (let i = 0; i < listeners.length; i++) {
       const listener = listeners[i];
+      // 调用所有的事件监听器
       listener();
     }
 
+    // 正因为有这个返回值，才会有后来的中间件机制
     return action;
   }
 
@@ -190,6 +207,7 @@ export default function createStore(reducer, preloadedState, enhancer) {
     }
     // 函数副作用，替换了当前使用的 currentReducer
     currentReducer = nextReducer;
+    // 替换结束后，重新初始化
     dispatch({ type: ActionTypes.REPLACE });
   }
 
