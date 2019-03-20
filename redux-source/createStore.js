@@ -57,18 +57,19 @@ export default function createStore(reducer, preloadedState, enhancer) {
     throw new Error("Expected the reducer to be a function.");
   }
 
+  // 保存了当前的reducer函数，该reducer函数可以被动态替换掉
   let currentReducer = reducer;
+  // 保存了当前的state数据
   let currentState = preloadedState;
+  // 保存了当前注册的函数列表
   let currentListeners = [];
+  // 保存下一个监听函数列表
   let nextListeners = currentListeners;
+  // 是否正在dispatch一个action
   let isDispatching = false;
 
   /**
-   * This makes a shallow copy of currentListeners so we can use
-   * nextListeners as a temporary list while dispatching.
    *
-   * This prevents any bugs around consumers calling
-   * subscribe/unsubscribe in the middle of a dispatch.
    */
   function ensureCanMutateNextListeners() {
     if (nextListeners === currentListeners) {
@@ -77,11 +78,10 @@ export default function createStore(reducer, preloadedState, enhancer) {
   }
 
   /**
-   * Reads the state tree managed by the store.
-   *
-   * @returns {any} The current state tree of your application.
+   * 返回当前state树，以获取当前状态
    */
   function getState() {
+    // dispatch 方法未触发 action 前，无法获取当前 state 树
     if (isDispatching) {
       throw new Error(
         "You may not call store.getState() while the reducer is executing. " +
@@ -89,32 +89,12 @@ export default function createStore(reducer, preloadedState, enhancer) {
           "Pass it down from the top reducer instead of reading it from the store."
       );
     }
-
     return currentState;
   }
 
   /**
-   * Adds a change listener. It will be called any time an action is dispatched,
-   * and some part of the state tree may potentially have changed. You may then
-   * call `getState()` to read the current state tree inside the callback.
    *
-   * You may call `dispatch()` from a change listener, with the following
-   * caveats:
-   *
-   * 1. The subscriptions are snapshotted just before every `dispatch()` call.
-   * If you subscribe or unsubscribe while the listeners are being invoked, this
-   * will not have any effect on the `dispatch()` that is currently in progress.
-   * However, the next `dispatch()` call, whether nested or not, will use a more
-   * recent snapshot of the subscription list.
-   *
-   * 2. The listener should not expect to see all state changes, as the state
-   * might have been updated multiple times during a nested `dispatch()` before
-   * the listener is called. It is, however, guaranteed that all subscribers
-   * registered before the `dispatch()` started will be called with the latest
-   * state by the time it exits.
-   *
-   * @param {Function} listener A callback to be invoked on every dispatch.
-   * @returns {Function} A function to remove this change listener.
+   * @param {*} listener
    */
   function subscribe(listener) {
     if (typeof listener !== "function") {
@@ -156,8 +136,8 @@ export default function createStore(reducer, preloadedState, enhancer) {
   }
 
   /**
-   *
-   *
+   *  核心方法
+   *  触发action的函数：每次触发一个action，currentListeners中的所有函数都要执行一遍
    */
   function dispatch(action) {
     // 通过 isPlainObject方法判断的对象，具体实现可以查看 utils 工具函数中对这个方法的解释
@@ -186,6 +166,7 @@ export default function createStore(reducer, preloadedState, enhancer) {
       // 注意，这里的 state 是整个应用的 state 树
       currentState = currentReducer(currentState, action);
     } finally {
+      // reducer函数执行完成后，将isDispatching恢复成false，方便下次action的触发
       isDispatching = false;
     }
 

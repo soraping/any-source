@@ -55,11 +55,12 @@ function getUnexpectedStateShapeWarningMessage(
   }
   // 过滤出state树中无法识别的，无定义reducer的key
   const unexpectedKeys = Object.keys(inputState).filter(
+    // 判定条件：reducers中不存在 这个 key 且 unexpectedKeyCache变量中也不存在
     key => !reducers.hasOwnProperty(key) && !unexpectedKeyCache[key]
   );
 
   unexpectedKeys.forEach(key => {
-    // 此处要注意下，这个地方是函数的一个副作用，在此处赋值，会对函数外的引用变量发生改变
+    // 此处要注意下，这个地方是内部函数的一个副作用，在此处赋值，会对函数外的引用变量发生改变
     unexpectedKeyCache[key] = true;
   });
 
@@ -149,8 +150,7 @@ export default function combineReducers(reducers) {
   }
   const finalReducerKeys = Object.keys(finalReducers);
 
-  // This is used to make sure we don't warn about the same
-  // keys multiple times.
+  // 定义变量存储 state树中的无效key（reducer中不存在）
   let unexpectedKeyCache;
   if (process.env.NODE_ENV !== "production") {
     unexpectedKeyCache = {};
