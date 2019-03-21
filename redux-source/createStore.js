@@ -95,7 +95,7 @@ export default function createStore(reducer, preloadedState, enhancer) {
   }
 
   /**
-   *
+   * 定义监听器，将回调函数存入到内存栈中
    * @param {*} listener 监听者
    */
   function subscribe(listener) {
@@ -212,21 +212,23 @@ export default function createStore(reducer, preloadedState, enhancer) {
   }
 
   /**
-   * Interoperability point for observable/reactive libraries.
-   * @returns {observable} A minimal observable of state changes.
-   * For more information, see the observable proposal:
-   * https://github.com/tc39/proposal-observable
+   * 一个及其简单的 observable 实现，可以学习
+   * source$ = store.observable()
+   * source$.subscribe({
+   *    next: (state) => {
+   *        console.log(state);
+   *    }
+   * })
+   *
    */
   function observable() {
+    // 首先将 subscribe 方法引用赋值于 outerSubscribe变量
     const outerSubscribe = subscribe;
     return {
       /**
-       * The minimal observable subscription method.
-       * @param {Object} observer Any object that can be used as an observer.
-       * The observer object should have a `next` method.
-       * @returns {subscription} An object with an `unsubscribe` method that can
-       * be used to unsubscribe the observable from the store, and prevent further
-       * emission of values from the observable.
+       * 订阅方法
+       * @param {*} observer 订阅者
+       * observer 包含一个next方法，该方法参数传递当前 state 树
        */
       subscribe(observer) {
         if (typeof observer !== "object" || observer === null) {
@@ -240,6 +242,7 @@ export default function createStore(reducer, preloadedState, enhancer) {
         }
 
         observeState();
+        // 提供退订方法
         const unsubscribe = outerSubscribe(observeState);
         return { unsubscribe };
       },
