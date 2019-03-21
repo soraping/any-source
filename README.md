@@ -7,3 +7,4 @@
 - [createStore](./doc/createStore.md)
 - [bindActionCreators](./doc/bindActionCreators.md)
 - [combineReducers](./doc/combineReducers.md)
+- [applyMiddleware](./doc/applyMiddleware.md)
