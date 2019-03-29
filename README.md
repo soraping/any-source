@@ -1,4 +1,4 @@
-### redux 源码阅读
+### redux
 
 #### redux-source 文件夹内是 redux 源码注释
 
@@ -8,3 +8,5 @@
 - [bindActionCreators](./doc/bindActionCreators.md)
 - [combineReducers](./doc/combineReducers.md)
 - [applyMiddleware](./doc/applyMiddleware.md)
+
+### preact
