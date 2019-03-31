@@ -7,5 +7,19 @@
         key:"",        //key
         attributes:{}  //jsx的属性
     }
+    拥有子组件的嵌套类型：
+    {
+        nodeName:"div",//标签名或者函数（自定义组件）
+        children:[
+            {
+                nodeName:"div",
+                children:[],
+                key:"",        
+                attributes:{}
+            }
+        ],   
+        key:"",        //key
+        attributes:{}  //jsx的属性
+    }
  */
 export const VNode = function VNode() {};
