@@ -382,7 +382,7 @@ export function removeChildren(node) {
 }
 
 /**
- *
+ * diff VNode和原页面dom之间的属性
  * @param {*} dom 已经通过diff之后的真实dom
  * @param {*} attrs 虚拟dom中的属性值
  * @param {*} old 通过preact创建的真实dom中，属性[ATTR_KEY]中保存的值和真实dom中已有属性值的组合
@@ -390,15 +390,18 @@ export function removeChildren(node) {
 function diffAttributes(dom, attrs, old) {
   let name;
 
-  // remove attributes no longer present on the vnode by setting them to undefined
+  // 遍历真实dom中的所有属性，判断该属性是否在虚拟dom中也有，如果没有，则设置其为undefined
   for (name in old) {
     if (!(attrs && attrs[name] != null) && old[name] != null) {
       setAccessor(dom, name, old[name], (old[name] = undefined), isSvgMode);
     }
   }
 
-  // add new & update changed attributes
+  // 遍历虚拟dom中的属性
   for (name in attrs) {
+    // 1.如果虚拟dom中的某个属性不是children或者innerHTML
+    // 2.且该属性不在old dom中，那说明是虚拟dom新增的属性 或者 如果name是value或者checked属性(表单)，
+    // 		attrs[name] 与 dom[name] 不同，或者不是value或者checked属性，则和old[name]属性不同，则将dom上的属性更新
     if (
       name !== "children" &&
       name !== "innerHTML" &&
