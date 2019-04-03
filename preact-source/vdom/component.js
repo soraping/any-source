@@ -262,19 +262,38 @@ export function renderComponent(component, renderMode, mountAll, isChild) {
 
 /**
  *
- * @param {*} dom
- * @param {*} vnode
- * @param {*} context
+ * @param {*} dom		旧真实dom
+ * @param {*} vnode 	虚拟dom
+ * @param {*} context	上下文
  * @param {*} mountAll
  */
 export function buildComponentFromVNode(dom, vnode, context, mountAll) {
+  // 取得附上真实DOM上的组件实例，注意：dom._component 属性缓存的是这个真实dom是由哪个虚拟dom渲染的。
+  // 变量c就是原真实dom由哪个虚拟dom渲染的
   let c = dom && dom._component,
     originalComponent = c,
     oldDom = dom,
+    // 判断原dom节点对应的组件类型与虚拟dom的元素类型是否相同
     isDirectOwner = c && dom._componentConstructor === vnode.nodeName,
     isOwner = isDirectOwner,
+    // 获取虚拟dom节点的属性值
     props = getNodeProps(vnode);
+
+  /**
+   * while 循环 c 这个组件，首先将c上的	_parentComponent 属性赋值给c，条件不达，就再次赋值，一直往上找
+   * _parentComponent属性缓存的就是该组件父类组件实例
+   * {
+   * 	_parentComponent: {
+   * 		_parentComponent: {
+   * 			_parentComponent: {
+   * 				_parentComponent: {}
+   * 			}
+   * 		}
+   * 	}
+   * }
+   */
   while (c && !isOwner && (c = c._parentComponent)) {
+    // 如果组件类型变了，一直向上遍历；看类型是否相同，直到找到与之同类型的组件实例，让isOwner为true为止
     isOwner = c.constructor === vnode.nodeName;
   }
 

@@ -134,18 +134,22 @@ function idiff(dom, vnode, context, mountAll, componentRoot) {
   }
 
   /**
-   * VNode 是一个组件类型，就是h函数的执行结果
-   * {
- 	    nodeName:"div",//标签名或者函数（自定义组件）节点的类型， div span p ...
-        children:[],   //子组件组成的数组，每一项也是一个vnode
-        key:"",        //key
-        attributes:{}  //jsx的属性
-   * }
+   * 当 vnodeName 是 function 类型
    */
   let vnodeName = vnode.nodeName;
   if (typeof vnodeName === "function") {
     return buildComponentFromVNode(dom, vnode, context, mountAll);
   }
+
+  /**
+    * VNode 是一个组件类型，就是h函数的执行结果
+    * {
+        nodeName:"div",//标签名或者函数（自定义组件）节点的类型， div span p ...
+        children:[],   //子组件组成的数组，每一项也是一个vnode
+        key:"",        //key
+        attributes:{}  //jsx的属性
+    * }
+    */
 
   // svg的处理
   isSvgMode =

@@ -21,5 +21,19 @@
         key:"",        //key
         attributes:{}  //jsx的属性
     }
+
+    
+
+    nodeName存在三种情况：
+    - 文本类型，<p>hello</p>，其中 hello 就是文本类型
+    - 字符串，普通标签类型 就是div,span,p等等的html标签
+    - function，当嵌套组件时，h(HelloJSX, null)，这个函数执行后的虚拟dom
+        {
+            nodeName: "function",
+            children: [],
+            key: '',
+            attributes: {}
+        }
+
  */
 export const VNode = function VNode() {};

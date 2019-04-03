@@ -6,7 +6,7 @@ export const NO_RENDER = 0;
 export const SYNC_RENDER = 1;
 /** Synchronously re-render a component, even if its lifecycle methods attempt to prevent it. */
 export const FORCE_RENDER = 2;
-/** Queue asynchronous re-render of a component and it's children */
+// 异步渲染
 export const ASYNC_RENDER = 3;
 
 // 在节点中添加的属性
