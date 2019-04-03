@@ -109,6 +109,7 @@ function idiff(dom, vnode, context, mountAll, componentRoot) {
       dom &&
       dom.splitText !== undefined &&
       dom.parentNode &&
+      // 文本类型是不存在指向子组件的 _component 属性，所以dom._component始终为undefined
       (!dom._component || componentRoot)
     ) {
       // 这是文本类型的比对，如果不同，则将新的文本值，覆盖到原始dom上
@@ -116,11 +117,12 @@ function idiff(dom, vnode, context, mountAll, componentRoot) {
         dom.nodeValue = vnode;
       }
     } else {
-      // 不是文本节点，替换之前的节点，回收之前的节点
+      // 不是文本节点或者旧dom不存在，替换之前的节点，回收之前的节点
       out = document.createTextNode(vnode);
       if (dom) {
         // 原始 dom 存在，且存在父节点，则基于父节点，
         if (dom.parentNode) dom.parentNode.replaceChild(out, dom);
+        // 只卸载生命周期，不删除节点
         recollectNodeTree(dom, true);
       }
     }
@@ -350,7 +352,7 @@ function innerDiffNode(dom, vchildren, context, mountAll, isHydrating) {
 export function recollectNodeTree(node, unmountOnly) {
   let component = node._component;
   if (component) {
-    // if node is owned by a Component, unmount that component (ends up recursing back here)
+    // 如果节点包含children的子组件，需要卸载这个子组件
     unmountComponent(component);
   } else {
     // 如果 preact 创建的组件，且设置了 ref，且 ref是一个function时，在卸载的时候，需要传一个null作为参数作为回调。

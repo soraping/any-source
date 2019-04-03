@@ -37,6 +37,11 @@ export function isNamedNode(node, nodeName) {
  * @param {import('../vnode').VNode} vnode The VNode to get props for
  * @returns {object} The props to use for this VNode
  */
+
+/**
+ * 获取虚拟dom的属性以及默认属性
+ * @param {*} vnode
+ */
 export function getNodeProps(vnode) {
   let props = extend({}, vnode.attributes);
   props.children = vnode.children;
