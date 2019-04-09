@@ -251,16 +251,6 @@ export function renderComponent(component, renderMode, mountAll, isChild) {
 }
 
 /**
- * Apply the Component referenced by a VNode to the DOM.
- * @param {import('../dom').PreactElement} dom The DOM node to mutate
- * @param {import('../vnode').VNode} vnode A Component-referencing VNode
- * @param {object} context The current context
- * @param {boolean} mountAll Whether or not to immediately mount all components
- * @returns {import('../dom').PreactElement} The created/mutated element
- * @private
- */
-
-/**
  *
  * @param {*} dom		旧真实dom
  * @param {*} vnode 	虚拟dom
@@ -307,16 +297,35 @@ export function buildComponentFromVNode(dom, vnode, context, mountAll) {
       unmountComponent(originalComponent);
       dom = oldDom = null;
     }
-    // 创建新的组件实例
+    /**
+	 * 创建新的组件实例（typeof vnode.nodeName === function）
+	 * 这个组件实例结构：
+	 * {
+	 * 		_dirty: true,
+			context: {},
+			props: {},
+			state: {},
+			_renderCallbacks: [],
+			constructor: [Function: Ctor],
+			render: [Function: doRender] }
+			nextBase?: dom
+	 * }
+	 */
     c = createComponent(vnode.nodeName, props, context);
     if (dom && !c.nextBase) {
+      // 对这个实例对象的 nextBase 重新赋值，将原dom赋值给这个属性
+      // 这个属性就是为了能基于此DOM元素进行渲染，从缓存中读取
       c.nextBase = dom;
       // passing dom/oldDom as nextBase will recycle it if unused, so bypass recycling on L229:
+      // 将 oldDom 销毁
       oldDom = null;
     }
+    // 为这个刚生成的组件实例对象 c 添加 props 属性
     setComponentProps(c, props, SYNC_RENDER, context, mountAll);
+    // 将这个组件实例对象的缓存 base 替换 dom 这个值
     dom = c.base;
 
+    // 如果oldDom 和 dom 不是同一个，则对 oldDom 进行销毁和回收
     if (oldDom && dom !== oldDom) {
       oldDom._component = null;
       recollectNodeTree(oldDom, false);
@@ -354,7 +363,7 @@ export function unmountComponent(component) {
     component.nextBase = base;
     // 将base节点从父节点中删除
     removeNode(base);
-
+    // 保存这个组件，以后会用到的
     recyclerComponents.push(component);
     // 卸载base节点所有的子元素
     removeChildren(base);
