@@ -301,11 +301,13 @@ export function buildComponentFromVNode(dom, vnode, context, mountAll) {
     setComponentProps(c, props, ASYNC_RENDER, context, mountAll);
     dom = c.base;
   } else {
+    // 当虚拟dom和原dom节点的元素类型不一致
     if (originalComponent && !isDirectOwner) {
+      // 移除旧的dom元素
       unmountComponent(originalComponent);
       dom = oldDom = null;
     }
-
+    // 创建新的组件实例
     c = createComponent(vnode.nodeName, props, context);
     if (dom && !c.nextBase) {
       c.nextBase = dom;
@@ -325,35 +327,38 @@ export function buildComponentFromVNode(dom, vnode, context, mountAll) {
 }
 
 /**
- * Remove a component from the DOM and recycle it.
- * @param {import('../component').Component} component The Component instance to unmount
+ * 移除这个组件并回收它
+ * @param {import('../component').Component} component 组件
  * @private
  */
 export function unmountComponent(component) {
   if (options.beforeUnmount) options.beforeUnmount(component);
-
+  // 回溯这个组件渲染的实例dom
   let base = component.base;
-
+  // 这个新增字段标示组件已经被禁用了
   component._disable = true;
-
+  // 调用组件销毁钩子函数
   if (component.componentWillUnmount) component.componentWillUnmount();
-
+  // 将缓存中的实例删除
   component.base = null;
-
-  // recursively tear down & recollect high-order component children:
+  // 回溯组件的子组件
   let inner = component._component;
+  // 存在则销毁
   if (inner) {
+    // 递归销毁
     unmountComponent(inner);
   } else if (base) {
+    // 如果base节点是preact创建，则调用ref函数，卸载传入null字段
     if (base[ATTR_KEY] != null) applyRef(base[ATTR_KEY].ref, null);
-
+    // 将base节点缓存在nextBase属性中
     component.nextBase = base;
-
+    // 将base节点从父节点中删除
     removeNode(base);
-    recyclerComponents.push(component);
 
+    recyclerComponents.push(component);
+    // 卸载base节点所有的子元素
     removeChildren(base);
   }
-
+  // 组件__ref属性函数调用null
   applyRef(component.__ref, null);
 }

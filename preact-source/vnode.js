@@ -29,7 +29,7 @@
     - 字符串，普通标签类型 就是div,span,p等等的html标签
     - function，当嵌套组件时，h(HelloJSX, null)，这个函数执行后的虚拟dom
         {
-            nodeName: "function",
+            nodeName: HelloJSX, // HelloJSX 是一个function
             children: [],
             key: '',
             attributes: {}

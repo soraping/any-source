@@ -58,6 +58,32 @@ const PageDOM = h(
 
 `preact` 中的 `h` 和 `react` 的 `createElement` 是对等的，都是生成虚拟 dom 的方法。
 
+```js
+// 无状态组件
+const HelloJSX = () => <div>hahaha</div>;
+const Page = (
+  <div>
+    <HelloJSX />
+    <span>5555</span>
+  </div>
+);
+```
+
+babel 编译后:
+
+```js
+var HelloJSX = function HelloJSX() {
+  return Preact.h("div", null, "hahaha");
+};
+
+var Page = Preact.h(
+  "div",
+  null,
+  Preact.h(HelloJSX, null),
+  Preact.h("span", null, "5555")
+);
+```
+
 ### h()/createElement() 方法生成 virtual DOM （vnode）
 
 ```js
@@ -92,7 +118,7 @@ const PageDOM = h(
     - 字符串，普通标签类型 就是div,span,p等等的html标签
     - function，对应一个组件，当嵌套组件时，h(HelloJSX, null)，这个函数执行后的虚拟dom
         {
-            nodeName: "function",
+            nodeName: HelloJSX, // HelloJSX 是一个function
             children: [],
             key: '',
             attributes: {}
