@@ -18,6 +18,11 @@ import { enqueueRender } from "./render-queue";
  * @param {*} context
  */
 export function Component(props, context) {
+  /**
+   * 用来表示存在脏数据(即数据与存在的对应渲染不一致)，
+   * 例如多次在组件实例调用setState，使得_dirty为true，
+   * 但因为该属性的存在，只会使得组件仅有一次才会被放入更新队列。
+   */
   this._dirty = true;
 
   /**

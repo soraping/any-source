@@ -21,9 +21,9 @@ import { createComponent, recyclerComponents } from "./component-recycler";
 import { removeNode } from "../dom/index";
 
 /**
- * Set a component's `props` and possibly re-render the component
- * @param {import('../component').Component} component The Component to set props on
- * @param {object} props The new props
+ * 为组件实例对象添加 props 属性
+ * @param {import('../component').Component} component 目标组件
+ * @param {object} props 新的组件
  * @param {number} renderMode Render options - specifies how to re-render the component
  * @param {object} context The new context
  * @param {boolean} mountAll Whether or not to immediately mount all components
@@ -35,14 +35,19 @@ export function setComponentProps(
   context,
   mountAll
 ) {
+  // 首先判断组件状态是否可用
   if (component._disable) return;
+  // 状态锁，先把组件设置为不可用，等待更新完后再设置为可用
   component._disable = true;
-
+  // ref 属性
   component.__ref = props.ref;
+  // 组件唯一键值
   component.__key = props.key;
+  // 移除这两个属性
   delete props.ref;
   delete props.key;
 
+  // getDerivedStateFromProps 静态方法
   if (typeof component.constructor.getDerivedStateFromProps === "undefined") {
     if (!component.base || mountAll) {
       if (component.componentWillMount) component.componentWillMount();
@@ -51,16 +56,19 @@ export function setComponentProps(
     }
   }
 
+  // context比对
   if (context && context !== component.context) {
     if (!component.prevContext) component.prevContext = component.context;
     component.context = context;
   }
 
+  // 属性比对
   if (!component.prevProps) component.prevProps = component.props;
   component.props = props;
-
+  // 设置为可用
   component._disable = false;
 
+  // render 模式
   if (renderMode !== NO_RENDER) {
     if (
       renderMode === SYNC_RENDER ||
