@@ -85,7 +85,7 @@ export function setComponentProps(
 }
 
 /**
- * Render a Component, triggering necessary lifecycle events and taking
+ * 渲染组件，及调用生命周期的钩子函数
  * High-Order Components into account.
  * @param {import('../component').Component} component The component to render
  * @param {number} [renderMode] render mode, see constants.js for available options.

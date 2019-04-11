@@ -13,3 +13,10 @@
 
 - [jsx,vnode 和 h 函数](./doc/preact/ch1.md)
 - [diff](./doc/preact/ch2.md)
+- [component](./doc/preact/ch3.md)
+
+#### 记录心得
+
+> js 基本功
+
+- [js prototype, constructor and new](./doc/blog/js/constructor.md)
