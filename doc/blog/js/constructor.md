@@ -170,4 +170,28 @@ p1.__proto__ === Person.prototype;
 
 #### new 一个对象到底发生了什么
 
+俗话说，`new` 一个对象你就有女朋友了，那么 `new` 一下，到底经历了什么呢。
+
+```js
+let p1 = new Person();
+```
+
+> step1 让变量`p1`指向一个空对象
+
+```js
+let p1 = {};
+```
+
+> step2 让 `p1` 这个对象的 `__proto__` 属性指向 `Person` 对象的原型对象
+
+```js
+p1.__proto__ = Person.prototype;
+```
+
+> step3 让 `p1` 来执行 `Person` 方法
+
+```js
+Person.call(p1);
+```
+
 #### 如何实现一个 new
