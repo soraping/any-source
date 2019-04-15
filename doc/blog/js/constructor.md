@@ -168,9 +168,226 @@ p1.__proto__ === Person.prototype;
 
 `Person` 对象可以从这个原型对象上继承其方法和属性，所以 `Person` 对象的实例也能访问原型对象的属性和方法，但是这些属性和方法不会挂载在这个实例对象本身上，而是原型对象的构造器的原型 `prototype` 属性上。
 
+那么，`Person.prototype` 的 `__proto__` 又指向哪里呢？
+
+![__proto__](https://ws1.sinaimg.cn/large/e221b779gy1g234lulansj21cm0jiwhw.jpg)
+
+看上图，可以看出 `p1.__proto__.__proto__` 指向了 `Object.prototype`，`p1.__proto__.__proto__.__proto__` 最后指向了 null，由此可以看出了构建了一条**原型链**。
+
+**原型链的构建依赖于实例对象的 `__proto__` ，并不是原对象的 `prototype`**
+
+ES6 设置获取原型的方法：
+
+```js
+// 给p1原型设置属性
+Object.setPrototypeOf(p1, { name: "zhangsan" });
+
+// zhangsan
+console.log(p1.name);
+
+// {name: "zhangsan"}
+Object.getPrototypeOf(p1);
+```
+
+![Object.setPrototypeOf](https://ws1.sinaimg.cn/large/e221b779gy1g235e0gp27j20om0qgwhh.jpg)
+
+上图红框可以看出，`Object.setPrototypeOf` 其实就是新的语法糖，相当于给 `P1.__proto__` 这个属性赋值。
+
+一个简单的案例:
+
+![另一个案例](https://ws1.sinaimg.cn/large/e221b779gy1g23616fpnkj20he0dq0tq.jpg)
+
+经典的原型链图示：
+
+![原型链](https://ws1.sinaimg.cn/large/e221b779gy1g234o1x3cuj20h60lpjsi.jpg)
+
+举例，如何用原生 js 实现 `Student` 继承 `Person`：
+
+```js
+function Person(name) {
+  this.name = name;
+}
+Person.prototype.getName = function() {
+  return this.name;
+};
+
+function Student(name, age) {
+  this.name = name;
+  this.age = age;
+}
+Student.prototype.getInfo = function() {
+  return `${this.name} and ${this.age}`;
+};
+```
+
+实现继承，即要 `Student` 的实例能够访问 `Person` 的属性和方法，也要能访问 `Person` 原型上的方法 `getName`。
+
+首先来看下 es6 的继承：
+
+```js
+class Person {
+    public name: string
+    constructor(name) {
+        this.name = name
+    }
+    getName(){
+        return this.name
+    }
+}
+
+class Student extends Person {
+    public age: number
+    constructor(name, age) {
+        super(name)
+    }
+
+    getAge() {
+        return this.age
+    }
+}
+
+let s = new Student('zhangsan', 20)
+
+// zhangsan
+s.name
+// zhangsan
+s.getName()
+// 20
+s.getAge()
+
+```
+
+那么，用原生 js 怎么做呢，下面来一步一步的实现。
+
+- `call` 实现函数上下文继承
+
+```js
+function Person(name) {
+  this.name = name;
+}
+Person.prototype.getName = function() {
+  return this.name;
+};
+
+function Student(name, age) {
+  Person.call(this, name);
+  this.age = age;
+}
+Student.prototype.getInfo = function() {
+  return `${this.name} and ${this.age}`;
+};
+
+let s = Student("zhangsan", 20);
+
+// zhangsan
+s.name;
+
+// error
+s.getName();
+```
+
+`call` 方法只是改变了 `Person` 中函数体内的 `this` 指向，并不能改变它的原型，所以无法访问 `Person` 方法的原型。
+
+- 原型链实现原型继承
+
+```js
+function Person(name) {
+  this.name = name;
+}
+Person.prototype.getName = function() {
+  return this.name;
+};
+
+function Student(age) {
+  this.age = age;
+}
+Student.prototype.getInfo = function() {
+  return this.age;
+};
+
+Student.prototype = new Person("zhangsan");
+
+let s = new Student(20);
+
+// zhangsan
+s.getName();
+```
+
+`Student.prototype` 的值设置为父类的实例对象，这样就能很简单的实现 `Student` 的实例对象能访问到 `Person` 的原型，但是这也是也有问题的，与其说继承的是 `Person` 这个类，不如说是继承的是这个类的实例对象，就是 `name = zhangsan` 这个实例，和 `oop` 的思想有背。
+
+- 上面两种方式的结合，完美解决这个问题
+
+```js
+/**
+ * 继承函数的核心方法
+ */
+function _extends(child, parent) {
+  // 定义一个中间函数，并设置它的 constructor
+  function __() {
+    this.constructor = child;
+  }
+  // 这个函数的原型指向父类的原型
+  __.prototype = parent.prototype;
+  // 子类的原型窒息那个这个中间函数的实例对象
+  child.prototype = new __();
+}
+```
+
+这个 `_extends` 方法，是实现的核心，两个知识点，一是定义了一个无参数的中间函数，并设置它的 `constructor`；第二个就是对原型链的使用。
+
+```js
+function Person(name) {
+  this.name = name;
+  this.getName1 = function() {
+    console.log("Person", this.name);
+  };
+}
+
+Person.prototype.getName = function() {
+  console.log("Person prototype", this.name);
+};
+
+// 这个方法一定要在定义子类原型之前调用
+_extends(Student, Person);
+
+function Student(name, age) {
+  this.age = age;
+  Person.call(this, name);
+}
+Student.prototype.getInfo = function() {
+  console.log("Student", this.age);
+};
+
+let s = new Student("zhangsan", 12);
+
+// Person prototype zhangsan
+s.getName();
+// Student 12
+s.getInfo();
+```
+
+这样，就能简单是实现了继承，并且多重继承也是支持的
+
+```js
+// 多重继承
+_extends(MidStudent, Student);
+function MidStudent(name, age, className) {
+  this.className = className;
+  Student.call(this, name, age);
+}
+
+let mids = new MidStudent("lisi", 16, "class1");
+// Person prototype lisi
+mids.getName();
+// Student 16
+mids.getInfo();
+```
+
+**有兴趣可以多多研究研究，网上有不少精品案例，这个是 js 的基础，比整天调用 api 有意思的多。**
+
 #### new 一个对象到底发生了什么
 
-俗话说，`new` 一个对象你就有女朋友了，那么 `new` 一下，到底经历了什么呢。
+俗话说，没有女朋友的你可以`new` 一个对象，那么这个 `new` 一下，到底经历了什么呢。
 
 ```js
 let p1 = new Person();
