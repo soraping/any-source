@@ -20,3 +20,5 @@
 > js 基本功
 
 - [js prototype, constructor and new](./doc/blog/js/constructor.md)
+
+- [大道至简，知易行难 -- AST](./doc/blog/ast.md)
