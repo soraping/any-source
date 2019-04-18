@@ -23,4 +23,4 @@
 
 - [大道至简，知易行难 -- AST](./doc/blog/ast.md)
 
-- [call,apply 及其简单实现](./doc/blog/call.md)
+- [call,apply 及其简单实现](./doc/blog/js/call.md)
