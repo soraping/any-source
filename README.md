@@ -22,3 +22,5 @@
 - [js prototype, constructor and new](./doc/blog/js/constructor.md)
 
 - [大道至简，知易行难 -- AST](./doc/blog/ast.md)
+
+- [call,apply 及其简单实现](./doc/blog/call.md)
