@@ -51,8 +51,8 @@ Object(123).toString(); // "123"
  */
 Function.prototype.myCall = function(context, ...args) {
   // 此处的 this，指向了 say 方法，打印的结果就是 [Function: say]
-  context.say = this;
-  context.say(...args);
+  let __ = (context[this.name] = this);
+  __(...args);
 };
 ```
 
@@ -78,8 +78,8 @@ Person.say.myCall(Person1, 12, "class1");
 
 ```js
 Function.prototype.myApply = function(context, args) {
-  context.speak = this;
-  context.speak(args);
+  let __ = (context[this.name] = this);
+  __(args);
 };
 ```
 
