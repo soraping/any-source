@@ -81,13 +81,13 @@ export function setComponentProps(
     }
   }
 
+  // 返回组件的真实实例dom
   applyRef(component.__ref, component);
 }
 
 /**
  * 渲染组件，及调用生命周期的钩子函数
- * High-Order Components into account.
- * @param {import('../component').Component} component The component to render
+ * @param {import('../component').Component} component 待渲染的组件
  * @param {number} [renderMode] render mode, see constants.js for available options.
  * @param {boolean} [mountAll] Whether or not to immediately mount all components
  * @param {boolean} [isChild] ?
@@ -96,22 +96,30 @@ export function setComponentProps(
 export function renderComponent(component, renderMode, mountAll, isChild) {
   if (component._disable) return;
 
+  // 最新的状态属性
   let props = component.props,
     state = component.state,
     context = component.context,
+    // 组件上一个状态组件实例属性
     previousProps = component.prevProps || props,
     previousState = component.prevState || state,
     previousContext = component.prevContext || context,
+    // 如果有真实dom存在，则是更新，没有则是第一次渲染
     isUpdate = component.base,
+    // 从缓存中取出上一次暄软或者是组件回收之前同类型的组件实例
     nextBase = component.nextBase,
     initialBase = isUpdate || nextBase,
+    // 组件实例中的_component属性表示的组件的子组件
+    // 仅仅只有当组件返回的是组件时(也就是当前组件为高阶组件)，才会存在
     initialChildComponent = component._component,
+    // 变量skip用来标志是否需要跳过更新的过程
     skip = false,
     snapshot = previousContext,
     rendered,
     inst,
     cbase;
 
+  // 生命周期静态属性 getDerivedStateFromProps
   if (component.constructor.getDerivedStateFromProps) {
     state = extend(
       extend({}, state),
@@ -120,7 +128,19 @@ export function renderComponent(component, renderMode, mountAll, isChild) {
     component.state = state;
   }
 
-  // if updating
+  /**
+   * 如果 component.base 存在，则isUpdate字段为true，那就说明组件渲染之前是有真实dom的，属性更新操作
+   * 首先要将组件中原来的 props，state，context这三个属性都换成 previousProps、previousState、previousContext
+   * 为什么要换成之前的状态属性，因为在 shouldComponentUpdate componentWillUpdate 这两个生命周期中，组件的状态还是之前的
+   *
+   * 如果renderMode不是强制刷新，且component.shouldComponentUpdate函数返回值为false时，
+   * 则表示要跳过此次刷新过程，更新标志skip为true
+   *
+   * 如果component.shouldComponentUpdate不存在获取返回的是ture，则判断执行 component.componentWillUpdate 函数
+   *
+   * 最后，组件实例的props、state、context替换成最新的状态
+   *
+   */
   if (isUpdate) {
     component.props = previousProps;
     component.state = previousState;
@@ -139,17 +159,31 @@ export function renderComponent(component, renderMode, mountAll, isChild) {
     component.context = context;
   }
 
+  // 组件实例中的prevProps、prevState、prevContext的属性全部设置为null
   component.prevProps = component.prevState = component.prevContext = component.nextBase = null;
+  // 状态锁 只有_dirty为false才会被放入更新队列，然后_dirty会被置为true，这样组件实例就不会被多次放入更新队列
   component._dirty = false;
 
+  /**
+   * 组件更新，首先执行组件实例的render方法，就是react组件类中的render函数
+   *
+   */
   if (!skip) {
+    // 执行render函数的返回值rendered则是组件实例对应的虚拟dom元素(VNode)
     rendered = component.render(props, state, context);
 
-    // context to pass to the child, can be updated via (grand-)parent component
+    /**
+     * 存在 component.getChildContext 函数
+     * 执行 component.getChildContext 函数，返回子组件的context
+     * 子组件的 context 属性会覆盖父组件的context属性
+     */
     if (component.getChildContext) {
       context = extend(extend({}, context), component.getChildContext());
     }
 
+    /**
+     * 在组件更新获取当前组件实例更新前，获取dom更新前的状态
+     */
     if (isUpdate && component.getSnapshotBeforeUpdate) {
       snapshot = component.getSnapshotBeforeUpdate(
         previousProps,
@@ -157,48 +191,82 @@ export function renderComponent(component, renderMode, mountAll, isChild) {
       );
     }
 
+    // childComponent 返回虚拟dom的类型，没错，后面又要判断这个类型了
     let childComponent = rendered && rendered.nodeName,
       toUnmount,
       base;
 
+    /**
+     * 如果这个组件的类型是一个function，则说明是高阶组件
+     */
     if (typeof childComponent === "function") {
-      // set up high order component link
-
+      // 获取虚拟dom的属性以及默认属性
       let childProps = getNodeProps(rendered);
+      // 初始化子组件值 component._component 存在
       inst = initialChildComponent;
 
+      /**
+       * 子组件值存在，且子组件的构造函数指向了 rendered && rendered.nodeName 的高阶函数
+       * 并且key值也是相同的
+       */
       if (
         inst &&
         inst.constructor === childComponent &&
         childProps.key == inst.__key
       ) {
+        // 同步的方式递归更新子组件的状态属性
         setComponentProps(inst, childProps, SYNC_RENDER, context, false);
       } else {
         toUnmount = inst;
-
+        // 创建子组件实例
         component._component = inst = createComponent(
           childComponent,
           childProps,
           context
         );
+        // 子组件之前渲染的实例
         inst.nextBase = inst.nextBase || nextBase;
+        // 子组件所对应的父组件
         inst._parentComponent = component;
+        // 不渲染，只为设置实例的属性
         setComponentProps(inst, childProps, NO_RENDER, context, false);
+        // 递归调用，同步 render
         renderComponent(inst, SYNC_RENDER, mountAll, true);
       }
-
+      // 组件的所对应的真实dom
       base = inst.base;
     } else {
+      // nodename 不是 function类型
+      // initialBase来自于initialBase = isUpdate || nextBase
+      // initialBase等于isUpdate
+      // nextBase = component.nextBase
+      // 即，cbase 就是上次组件渲染的内容
+      // 如果组件实例存在缓存 nextBase
       cbase = initialBase;
 
-      // destroy high order component link
+      // component._component，缓存中子组件，用来存储之后需要卸载的组件
       toUnmount = initialChildComponent;
       if (toUnmount) {
+        // cbase对应的是之前的组件的dom节点
+        // component._component = null的目的就是切断之前组件间的父子关系
         cbase = component._component = null;
       }
 
+      /**
+       * initialBase 存在且 renderMode 方式为同步渲染
+       */
       if (initialBase || renderMode === SYNC_RENDER) {
         if (cbase) cbase._component = null;
+        /**
+         * 调用diff方法，第一个参数，之前渲染的真实dom
+         * rendered 就是 需要渲染的虚拟dom
+         * context 上下文属性
+         * mountAll || !isUpdate 是否更新
+         * 缓存中nextBase 上次渲染的dom节点的父节点
+         * componentRoot 为true表示的是当前diff是以组件中render函数的渲染内容的形式调用，也可以说当前的渲染内容是属于组件类型的
+         *
+         * 返回diff本次渲染后的真实dom节点
+         */
         base = diff(
           cbase,
           rendered,
@@ -210,23 +278,34 @@ export function renderComponent(component, renderMode, mountAll, isChild) {
       }
     }
 
+    /**
+     * 之前存在的nextBase，渲染之前dom存在，且渲染后的dom与它不同，且子组件也不同
+     */
     if (initialBase && base !== initialBase && inst !== initialChildComponent) {
+      // 父节点
       let baseParent = initialBase.parentNode;
+      // 父节点存在且新渲染的dom和这个父节点不同
       if (baseParent && base !== baseParent) {
+        // 父级的DOM元素中将之前的DOM节点替换成当前对应渲染的DOM节点
         baseParent.replaceChild(base, initialBase);
-
+        // 子组件不存在
         if (!toUnmount) {
+          // 缓存中子组件字段设置为null
           initialBase._component = null;
+          // 回收组件
           recollectNodeTree(initialBase, false);
         }
       }
     }
 
     if (toUnmount) {
+      // 卸载组件
       unmountComponent(toUnmount);
     }
 
+    // base属性指向新渲染的dom
     component.base = base;
+
     if (base && !isChild) {
       let componentRef = component,
         t = component;
@@ -241,11 +320,7 @@ export function renderComponent(component, renderMode, mountAll, isChild) {
   if (!isUpdate || mountAll) {
     mounts.push(component);
   } else if (!skip) {
-    // Ensure that pending componentDidMount() hooks of child components
-    // are called before the componentDidUpdate() hook in the parent.
-    // Note: disabled as it causes duplicate hooks, see https://github.com/developit/preact/issues/750
-    // flushMounts();
-
+    // 生命周期 component.componentDidUpdate 函数调用
     if (component.componentDidUpdate) {
       component.componentDidUpdate(previousProps, previousState, snapshot);
     }

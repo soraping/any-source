@@ -52,9 +52,12 @@ export function Component(props, context) {
  */
 extend(Component.prototype, {
   /**
+   * this 指向调用的组件
    * 用来更新state树数据
-   * @param {*} state
-   * @param {*} callback
+   * state即可以是json，也可以是function
+   * 执行 enqueueRender 函数,将组件存入缓存队列，异步调用 render 组件
+   * @param {*} state 新的state
+   * @param {*} callback 更新后的回调函数
    */
   setState(state, callback) {
     if (!this.prevState) this.prevState = this.state;

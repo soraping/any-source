@@ -16,6 +16,11 @@ const EMPTY_CHILDREN = [];
  * @param {*} attributes     jsx上面的属性
  * @param {*} [rest]         剩下的参数都是子组件
  * @return    VNode实例
+ * {
+      nodeName: 'div',
+      children: [ 'Hello!' ],
+      attributes: { id: 'foo', name: 'bar' },
+      key: undefined }
  */
 export function h(nodeName, attributes) {
   let children = EMPTY_CHILDREN,
