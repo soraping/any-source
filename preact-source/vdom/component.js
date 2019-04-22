@@ -342,7 +342,7 @@ export function renderComponent(component, renderMode, mountAll, isChild) {
  */
 export function buildComponentFromVNode(dom, vnode, context, mountAll) {
   // 取得附上真实DOM上的组件实例，注意：dom._component 属性缓存的是这个真实dom是由哪个虚拟dom渲染的。
-  // 变量c就是原真实dom由哪个虚拟dom渲染的
+  // 变量c就是原真实dom由哪个组件渲染的，就是原组件的缓存（组件过大会不会造成内存溢出呢）
   let c = dom && dom._component,
     originalComponent = c,
     oldDom = dom,
