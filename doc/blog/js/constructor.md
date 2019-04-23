@@ -424,7 +424,8 @@ function myNew(Con, ...args) {
   // 创建一个空的对象
   let obj = {};
   // 链接到原型，obj 可以访问到构造函数原型中的属性
-  obj.__proto__ = Con.prototype;
+  // obj.__proto__ = Con.prototype;
+  Object.setPrototypeOf(obj, Con.prototype);
   // 绑定 this 实现继承，obj 可以访问到构造函数中的属性
   let ret = Con.call(obj, ...args);
   // 优先返回构造函数返回的对象
