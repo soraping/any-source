@@ -100,7 +100,7 @@ Object.assign(Component.prototype, {
 可以看出，如果是容器组件，继承了父类 `Preact.Component` ，就能够访问 `render` 方法，那么如果是无状态组件，怎样让这个组件拥有 `render` 方法：
 
 ```js
-let inst = new React.Component(props, context);
+let inst = new Preact.Component(props, context);
 inst.constructor = Foo;
 inst.render = function(props, state, context) {
   return this.constructor(props, context);
@@ -114,7 +114,7 @@ inst.render = function(props, state, context) {
 现在就说通了，其实，无状态组件最终也会拥有一个 `render` 方法，触发后会返回一个虚拟 dom 或者是子组件。
 
 ```js
-let inst = new React.Component(props, context);
+let inst = new Preact.Component(props, context);
 inst.render = function(props, state, context) {
   return Foo(props, context);
 };

@@ -44,6 +44,9 @@ export function Component(props, context) {
    */
   this.state = this.state || {};
 
+  /**
+   * render 回调函数队列
+   */
   this._renderCallbacks = [];
 }
 
