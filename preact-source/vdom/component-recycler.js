@@ -51,7 +51,7 @@ export function createComponent(Ctor, props, context) {
   while (i--) {
     // 回收组件中存在之前创建过的 PFC 组件
     if (recyclerComponents[i].constructor === Ctor) {
-      // nextBase 属性记录的是该组件之前渲染的实例
+      // nextBase 属性记录的是该组件之前渲染的真实dom
       inst.nextBase = recyclerComponents[i].nextBase;
       // 在组件回收站中删除这个组件
       recyclerComponents.splice(i, 1);

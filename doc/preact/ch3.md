@@ -81,7 +81,7 @@ const PageDOM = h(
 
 看下虚拟 dom 的结构，其中，`nodeName === HelloDOM` 时，那它的类型就是一个 `function`，那我们就来看下这个 `buildComponentFromVNode` 方法的具体实现吧！
 
-#### `buildComponentFromVNode`
+### `buildComponentFromVNode`
 
 ```js
 /**
@@ -239,7 +239,7 @@ setComponentProps(c, props, SYNC_RENDER, context, mountAll);
 
 `dom = c.base` 给 dom 赋值，组件实例 `c` 的属性 `base` 值，这个值会在 `renderComponent` 方法里设置，后面会讲，这个属性值就是为了缓存这个组件的真实 dom。
 
-#### `createComponent`
+### `createComponent`
 
 ```js
 /**
@@ -293,7 +293,7 @@ export function createComponent(Ctor, props, context) {
   while (i--) {
     // 回收组件中存在之前创建过的 PFC 组件
     if (recyclerComponents[i].constructor === Ctor) {
-      // nextBase 属性记录的是该组件之前渲染的实例
+      // nextBase 属性记录的是该组件渲染之前的真实dom
       inst.nextBase = recyclerComponents[i].nextBase;
       // 在组件回收站中删除这个组件
       recyclerComponents.splice(i, 1);
@@ -323,6 +323,9 @@ if (Ctor.prototype && Ctor.prototype.render) {
 
 ```jsx
 class App extends Preact.Component {
+  constructor(props, context) {
+    super(props, context);
+  }
   render() {
     return <div>render</div>;
   }
@@ -335,6 +338,254 @@ class App extends Preact.Component {
 inst = new Ctor(props, context);
 Component.call(inst, props, context);
 ```
+
+定义 `inst` 为 `Ctor` 组件实例，传入参数`props`,`context`， `inst` 实例对象是存在 `render` 方法的，但是不一定存在 `props`和`context`的属性， 如果没有给父级构造函数 super 传入`props`和`context`，那么 inst 中的`props`和`context`的属性为 undefined，通过强制调用 `Component.call(inst, props, context)`可以给`inst`中`props`、`context`进行初始化赋值。
+
+如果 `Ctor` 不存在 `render` 方法，那就要给他添加 `render` 方法，怎么处理呢？
+
+首先初始化一个空组件实例对象 `inst = new Component(props, context)`，这个实例对象虽然有 `render` 方法，但是和我们传入的无状态组件没有任何联系，处理方法是执行这个语句： `inst.constructor = Ctor`。如果没有这句话，那 `inst.constructor` 指向的是 `Component` 这个类，对它重新赋值，就是改变了这个实例对象 `inst` 构造器的值指向了无状态组件 `Ctor` ，即，一个高阶函数。
+最后重新实现 `render` 方法：
+
+```js
+inst.render = function(props, state, context) {
+  return this.constructor(props, context);
+};
+```
+
+这个 `this` 指向实例对象 `inst` ，执行 `this.constructor` 方法，其实就是执行 `Ctor` 这个函数方法，这个方法传入两个参数 `props`和`context`， 这个方法返回的就是一个虚拟 dom，到此为止，也解释了无状态组件如何生成组件实例，也同时拥有`render`方法。
+
+组件实例 `inst` 已经生成了，接着从组件回收池 `recyclerComponents` 中是否存在这个组件实例：
+
+```js
+if (recyclerComponents[i].constructor === Ctor) {
+  // ...
+}
+```
+
+`recyclerComponents` 这个队列中存放的都是一些回收的组件实例，其实就是上面生成的 `inst`。上面的 `if` 语句就是判断回收池中有没有组件 `Ctor` 的实例。
+如果存在这样的实例：
+
+```js
+inst.nextBase = recyclerComponents[i].nextBase;
+recyclerComponents.splice(i, 1);
+return inst;
+```
+
+给组件实例对象 `inst` 的 `nextBase`（nextBase 属性记录的是该组件之前渲染的真实 dom）属性赋值，从回收池中的实例对象中取，然后移除回收池中的元素。
+
+### setComponentProps
+
+生成了组件实例之后，就考虑给这个实例添加传入的 `props` 属性了。
+
+```js
+/**
+ * 为组件实例对象添加 props 属性
+ * @param {import('../component').Component} component 目标组件
+ * @param {object} props 新的组件
+ * @param {number} renderMode Render options - specifies how to re-render the component
+ * @param {object} context The new context
+ * @param {boolean} mountAll Whether or not to immediately mount all components
+ */
+export function setComponentProps(
+  component,
+  props,
+  renderMode,
+  context,
+  mountAll
+) {
+  // 首先判断组件状态是否可用
+  if (component._disable) return;
+  // 状态锁，先把组件设置为不可用，等待更新完后再设置为可用
+  component._disable = true;
+  // ref 属性
+  component.__ref = props.ref;
+  // 组件唯一键值
+  component.__key = props.key;
+  // 移除这两个属性
+  delete props.ref;
+  delete props.key;
+
+  // getDerivedStateFromProps 静态方法
+  if (typeof component.constructor.getDerivedStateFromProps === "undefined") {
+    if (!component.base || mountAll) {
+      if (component.componentWillMount) component.componentWillMount();
+    } else if (component.componentWillReceiveProps) {
+      component.componentWillReceiveProps(props, context);
+    }
+  }
+
+  // context比对
+  if (context && context !== component.context) {
+    if (!component.prevContext) component.prevContext = component.context;
+    component.context = context;
+  }
+
+  // 属性比对
+  if (!component.prevProps) component.prevProps = component.props;
+  component.props = props;
+  // 设置为可用
+  component._disable = false;
+
+  // render 模式
+  if (renderMode !== NO_RENDER) {
+    if (
+      renderMode === SYNC_RENDER ||
+      options.syncComponentUpdates !== false ||
+      !component.base
+    ) {
+      renderComponent(component, SYNC_RENDER, mountAll);
+    } else {
+      enqueueRender(component);
+    }
+  }
+
+  // 返回组件的真实实例dom
+  applyRef(component.__ref, component);
+}
+```
+
+`setComponentProps` 方法接收 5 个参数：
+
+- component 目标组件实例，就是上面说的 `inst` 对象；
+- props 需要添加的属性;
+- renderMode render 模式 同步还是异步;
+- context 上下文环境；
+- mountAll 组件相关
+
+`component._disable` 属性是判断组件是否可用，状态锁，在设置组件属性之前，设置为不可用，组件设置之后，再将这个状态锁设置为可用。执行生命周期 `componentWillMount` 这个钩子函数。
+
+```js
+// context比对
+if (context && context !== component.context) {
+  if (!component.prevContext) component.prevContext = component.context;
+  component.context = context;
+}
+
+// 属性比对
+if (!component.prevProps) component.prevProps = component.props;
+component.props = props;
+```
+
+每个组件实例都有四个状态属性：
+
+- prevContext：前一个 `context` 属性状态
+- context：传入的新 `context` 属性状态
+- prevProps：前一个 `props` 属性状态
+- props：传入的新 `props` 属性状态
+
+判断每个组件是否有前一个属性状态字段，有则更新为新的对应的属性值，没有则追加字段，设置的值就是传入的属性值。
+
+属性值已经更新完毕了，接下来就是将这个组件渲染出来了：
+
+```js
+if (renderMode !== NO_RENDER) {
+  if (
+    renderMode === SYNC_RENDER ||
+    options.syncComponentUpdates !== false ||
+    !component.base
+  ) {
+    renderComponent(component, SYNC_RENDER, mountAll);
+  } else {
+    enqueueRender(component);
+  }
+}
+```
+
+渲染模式 `renderMode` 有四种：`NO_RENDER`（不渲染），`SYNC_RENDER`（同步渲染），`ASYNC_RENDER`（异步渲染），`FORCE_RENDER`（强制渲染）。
+
+上面代码中判断了 `renderMode` 是否是 `SYNC_RENDER` ，如果是同步渲染，则直接调用了 `renderComponent` 方法，如果是异步渲染，则会调用 `enqueueRender` 这个方法。
+
+首先来看下 `enqueueRender` 是如何实现异步渲染的：
+
+```js
+/**
+ * 待渲染队列
+ * @type {Array<import('./component').Component>}
+ */
+let items = [];
+
+/**
+ * 组件存入渲染队列
+ * @param {import('./component').Component} component The component to rerender
+ */
+export function enqueueRender(component) {
+  // component._dirty为false时才会将组件放入待渲染队列中，然后就将 component._dirty 设置为 true
+  // 这样就能防止一个组件多次render
+  if (
+    !component._dirty &&
+    (component._dirty = true) &&
+    // 仅有一次放在render队列中
+    items.push(component) == 1
+  ) {
+    // 异步的执行render，要执行render方法的component中的_dirty设为true
+    (options.debounceRendering || defer)(rerender);
+  }
+}
+
+/**
+ * 逐一取出组件，一次调用 renderComponent 函数
+ */
+export function rerender() {
+  let p;
+  while ((p = items.pop())) {
+    if (p._dirty) renderComponent(p);
+  }
+}
+```
+
+异步渲染其实就是延时渲染，在代码内部，做了一个缓冲区 `items` ，它是一个数组，其中就是一个个待渲染的组件队列。只要调用了 `enqueueRender` 这个方法的组件实例，都会将这个组件实例 `push` 到这个队列中进行排队，然后逐一取出，依次调用 `renderComponent` 方法。
+
+**在将组件 `push` 到队列之前，系统做了依次判断，就是判断 `component._dirty` 这个组件实例对象属性 `_dirty` 是否为 `false` ，不成立则立即将这个属性赋值为 `true`，这样做就是为了防止一个组件多次 `render` 而设置的一把锁，这种写法还是非常值得学习的。**
+
+### renderComponent
+
+### unmountComponent
+
+```js
+/**
+ * 移除这个组件并回收它
+ * @param {import('../component').Component} component 组件
+ * @private
+ */
+export function unmountComponent(component) {
+  if (options.beforeUnmount) options.beforeUnmount(component);
+  // 回溯这个组件渲染的实例dom
+  let base = component.base;
+  // 这个新增字段标示组件已经被禁用了
+  component._disable = true;
+  // 调用组件销毁钩子函数
+  if (component.componentWillUnmount) component.componentWillUnmount();
+  // 将缓存中的实例删除
+  component.base = null;
+  // 回溯组件的子组件
+  let inner = component._component;
+  // 存在则销毁
+  if (inner) {
+    // 递归销毁
+    unmountComponent(inner);
+  } else if (base) {
+    // 如果base节点是preact创建，则调用ref函数，卸载传入null字段
+    if (base[ATTR_KEY] != null) applyRef(base[ATTR_KEY].ref, null);
+    // nextBase 属性记录的是该组件之前渲染的真实dom
+    component.nextBase = base;
+    // 将base节点从父节点中删除
+    removeNode(base);
+    // 保存这个组件，以后会用到的
+    recyclerComponents.push(component);
+    // 卸载base节点所有的子元素
+    removeChildren(base);
+  }
+  // 组件__ref属性函数调用null
+  applyRef(component.__ref, null);
+}
+```
+
+移除并回收组件，`preact` 之所以快速，就是因为大量使用了缓存空间，这个方法就缓存了移除组件的实例对象，这是一个双刃剑，如果组件特别多特别大的情况下，内存消耗将是一个很大的问题。
+
+在上文 `createComponent` 方法中就使用了 `recyclerComponents` 这个数组内容，它缓存了销毁的组件实例，那为什么要缓存它呢，因为在这个组件实例对象上，追加了很多缓存属性：
+
+- component.base 组件渲染前的真实 dom
+- component.nextBase 如果存在真实 dom，则缓存这个 dom
 
 ```jsx
 class App extends Component {
