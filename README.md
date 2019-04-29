@@ -28,3 +28,7 @@
 #### react && redux
 
 - [redux-observable 使用小记](https://github.com/soraping/any-source/issues/4)
+
+#### 编程思想
+
+- [IOC](https://github.com/soraping/any-source/issues/14)
