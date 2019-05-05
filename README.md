@@ -32,3 +32,5 @@
 #### 编程思想
 
 - [IOC](https://github.com/soraping/any-source/issues/14)
+
+-[typescript 依赖注入实践](https://github.com/soraping/any-source/issues/15)
