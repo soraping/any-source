@@ -9,11 +9,17 @@
 - [combineReducers](https://github.com/soraping/any-source/issues/9)
 - [applyMiddleware](https://github.com/soraping/any-source/issues/10)
 
-#### preact
+#### preact 8.x
 
 - [jsx,vnode 和 h 函数](https://github.com/soraping/any-source/issues/11)
 - [diff](https://github.com/soraping/any-source/issues/12)
 - [component](https://github.com/soraping/any-source/issues/13)
+
+#### preact 10.x
+
+> 主要对比前版本的差异，学习作者的更新思路
+
+- [createElement](https://github.com/soraping/any-source/issues/16)
 
 ### 记录心得 blog
 
