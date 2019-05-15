@@ -19,7 +19,8 @@
 
 > 主要对比前版本的差异，学习作者的更新思路
 
-- [createElement](https://github.com/soraping/any-source/issues/16)
+- [试试这么读 preact 源码（一）- createElement 函数](https://github.com/soraping/any-source/issues/16)
+- [试试这么读 preact 源码（二）- render](https://github.com/soraping/any-source/issues/17)
 
 ### 记录心得 blog
 
